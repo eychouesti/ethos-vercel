@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Eth OS Classic II</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: monospace;
+      background-color: black;
+      color: #00ff00;
+      overflow: hidden;
+    }
+    #boot {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 20px;
+      color: #00ff00;
+      user-select: none;
+    }
+    #desktop {
+      display: none;
+      width: 100vw;
+      height: 100vh;
+      background-color: #97abf3;
+      background-size: cover;
+      position: relative;
+    }
+    #topbar {
+      position: absolute;
+      top: 0;
+      width: 100%;
+      height: 25px;
+      background-color: #cccccc;
+      color: black;
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      justify-content: space-between;
+      font-size: 12px;
+      user-select: none;
+      z-index: 1000;
+    }
+    #topbar .left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+    }
+    #topbar .left img {
+      height: 18px;
+      user-select: none;
+    }
+    .icon {
+      width: 40px;
+      height: 40px;
+      margin: 10px;
+      text-align: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      user-select: none;
+    }
+    .icon span {
+      color: black;
+      user-select: none;
+      font-size: 12px;
+      display: block;
+      margin-top: 2px;
+    }
+    #sidebar {
+      position: absolute;
+      top: 50px;
+      left: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      z-index: 900;
+    }
+    .window {
+      position: absolute;
+      background-color: white;
+      border: 2px solid #cccccc;
+      width: 600px;
+      height: 400px;
+      display: none;
+      flex-direction: column;
+      box-shadow: 4px 4px 10px rgba(0,0,0,0.3);
+      user-select: none;
+      z-index: 1100;
+    }
+    .title-bar {
+      background-color: #cccccc;
+      padding: 5px;
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      gap: 10px;
+      cursor: move;
+      user-select: none;
+    }
+    .buttons {
+      display: flex;
+      gap: 8px;
+      margin-left: 5px;
+    }
+    .button {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 1px solid rgba(0,0,0,0.2);
+    }
+    .red { background-color: #ff5f56; }
+    .yellow { background-color: #ffbd2e; }
+    .green { background-color: #27c93f; }
+    .window .content {
+      padding: 10px;
+      background-color: white;
+      color: black;
+      flex-grow: 1;
+      overflow: auto;
+      user-select: text;
+    }
+    #ethos-window .content {
+      background-color: black;
+      color: white;
+    }
+    #dock {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 20px;
+      background-color: rgba(255,255,255,0.2);
+      padding: 10px;
+      border-radius: 10px;
+      user-select: none;
+      z-index: 1200;
+    }
+    .minimized-icon {
+      display: none;
+      cursor: pointer;
+    }
+    #cli-menu {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    #cli-menu button {
+      background-color: #222;
+      border: 1px solid #00ff00;
+      color: #00ff00;
+      padding: 5px 10px;
+      cursor: pointer;
+      font-family: monospace;
+      border-radius: 3px;
+      transition: background-color 0.2s, color 0.2s;
+      user-select: none;
+    }
+    #cli-menu button.active,
+    #cli-menu button:hover {
+      background-color: #00ff00;
+      color: black;
+    }
+    #center-logo {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      user-select: none;
+      opacity: 0.15;
+      max-width: 300px;
+      max-height: 300px;
+      pointer-events: none;
+      z-index: 10;
+    }
+    /* Tetris canvas */
+    #tetris-canvas {
+      background: black;
+      display: block;
+      margin: 0 auto;
+      border: 2px solid #00ff00;
+      image-rendering: pixelated;
+    }
+  </style>
+</head>
+<body>
+  <div id="boot">
+    <img src="logo.png" alt="logo" style="height: 40px; vertical-align: middle;"> Eth OS booting up...
+  </div>
+  <div id="desktop">
+    <div id="topbar">
+      <div class="left" onclick="toggleAboutWindow()">
+        <img src="logo.png" alt="EthOS Logo" />
+        <span>Eth OS Classic II</span>
+      </div>
+      <div class="right">
+        <span id="eth-price">ETH: $3,250</span>
+        <span id="clock">12:00</span>
+      </div>
+    </div>
+
+    <img id="center-logo" src="logo.png" alt="Center Logo" />
+
+    <div id="about-window" class="window" style="top: 30px; left: 10px; width: 250px; height: 120px;">
+      <div class="title-bar" onmousedown="dragMouseDown(event, this.parentElement)">
+        <div>About This EthOS</div>
+        <div class="buttons">
+          <div class="button red" onclick="closeWindow('about-window')"></div>
+          <div class="button yellow" onclick="minimizeWindow('about-window')"></div>
+        </div>
+      </div>
+      <div class="content">
+        <img src="logo.png" height="50" alt="Logo"><br>
+        EthOS Version 1<br>
+        The Ethereum Operating System
+      </div>
+    </div>
+
+    <div id="sidebar">
+      <div class="icon" onclick="openWindow('ethos-window')">
+        <img src="cli.png" alt="CLI Icon"><span>CLI</span>
+      </div>
+      <div class="icon" onclick="window.open('https://www.dextools.io/app/en/ether/pair-explorer/0xd277b8bef27af6c2dc0a8aeddd23a57637892270?t=1754062122970','_blank')">
+        <img src="dextools.png" alt="DexTools Icon"><span>DexTools</span>
+      </div>
+      <div class="icon" onclick="openWindow('game-window')">
+        <img src="game.png" alt="Game Icon"><span>Game</span>
+      </div>
+      <div class="icon" onclick="openWindow('code-window')">
+        <img src="code.png" alt="Code Icon"><span>Code</span>
+      </div>
+    </div>
+
+    <div id="ethos-window" class="window" style="width: 600px; height: 400px;">
+      <div class="title-bar" onmousedown="dragMouseDown(event, this.parentElement)">
+        <div>EthOS CLI</div>
+        <div class="buttons">
+          <div class="button red" onclick="closeWindow('ethos-window')"></div>
+          <div class="button yellow" onclick="minimizeWindow('ethos-window')"></div>
+        </div>
+      </div>
+      <div class="content">
+        <div id="cli-menu">
+          <button class="active" onclick="showCliSection('welcome')">Welcome</button>
+          <button onclick="showCliSection('ethos')">What is EthOS?</button>
+          <button onclick="showCliSection('epoch')">Epoch Info</button>
+          <button onclick="openOfficialSite()">Official Site</button>
+        </div>
+        <div id="cli-content">
+          <div id="welcome" class="cli-section">
+            <p>Welcome to the Ethereum Operating System—the first-of-its-kind revenue generating DeFi pumpware built as a social DeFi sandbox that is filled with composable elements so you can create, trade, communicate, and participate—all in one place.</p>
+          </div>
+          <div id="ethos" class="cli-section" style="display:none;">
+            <p>EthOS is a revolutionary platform designed to integrate DeFi and social tools into a seamless experience.</p>
+          </div>
+          <div id="epoch" class="cli-section" style="display:none;">
+            <p>Early Visionaries Win.<br>The airdrop is divided into 11 epochs, each lasting 3 days. Each epoch increases the APY by 3% and reduces the rewards by (107k / 11). To get the most out of the airdrop, you need to claim your rewards and mint AIR tokens before the epoch ends.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="game-window" class="window" style="width: 320px; height: 440px;">
+      <div class="title-bar" onmousedown="dragMouseDown(event, this.parentElement)">
+        <div>Tetris</div>
+        <div class="buttons">
+          <div class="button red" onclick="closeWindow('game-window')"></div>
+          <div class="button yellow" onclick="minimizeWindow('game-window')"></div>
+        </div>
+      </div>
+      <div class="content" style="display:flex; justify-content:center; align-items:center;">
+        <canvas id="tetris-canvas" width="240" height="400"></canvas>
+      </div>
+    </div>
+
+    <div id="code-window" class="window" style="width: 600px; height: 400px;">
+      <div class="title-bar" onmousedown="dragMouseDown(event, this.parentElement)">
+        <div>Code</div>
+        <div class="buttons">
+          <div class="button red" onclick="closeWindow('code-window')"></div>
+          <div class="button yellow" onclick="minimizeWindow('code-window')"></div>
+        </div>
+      </div>
+      <div class="content">
+        <p>"Ah... these days, everyone is talking about me and trying to find me."</p>
+      </div>
+    </div>
+
+    <div id="dock">
+      <div id="minimized-ethos" class="minimized-icon" onclick="restoreWindow('ethos-window', 'minimized-ethos')">
+        <img src="cli.png" alt="CLI Icon" style="height: 30px;">
+      </div>
+      <div id="minimized-game" class="minimized-icon" onclick="restoreWindow('game-window', 'minimized-game')">
+        <img src="game.png" alt="Game Icon" style="height: 30px;">
+      </div>
+      <div id="minimized-code" class="minimized-icon" onclick="restoreWindow('code-window', 'minimized-code')">
+        <img src="code.png" alt="Code Icon" style="height: 30px;">
+      </div>
+      <div id="minimized-about" class="minimized-icon" onclick="restoreWindow('about-window', 'minimized-about')">
+        <img src="logo.png" alt="About Icon" style="height: 30px;">
+      </div>
+    </div>
+  </div>
+
+<script>
+  setTimeout(() => {
+    document.getElementById('boot').style.display = 'none';
+    document.getElementById('desktop').style.display = 'block';
+  }, 3000);
+
+  function updateTime() {
+    const now = new Date();
+    document.getElementById('clock').innerText = now.toLocaleTimeString();
+  }
+  setInterval(updateTime, 1000);
+  updateTime();
+
+  function openWindow(id) {
+    const win = document.getElementById(id);
+    win.style.display = 'flex';
+    win.style.zIndex = getMaxZIndex() + 1;
+    centerWindow(win);
+    hideMinimizedIcon(id);
+  }
+
+  function closeWindow(id) {
+    const win = document.getElementById(id);
+    win.style.display = 'none';
+    hideMinimizedIcon(id);
+  }
+
+  function minimizeWindow(id) {
+    const win = document.getElementById(id);
+    win.style.display = 'none';
+    showMinimizedIcon(id);
+  }
+
+  function showMinimizedIcon(id) {
+    const minIcon = document.getElementById('minimized-' + id.split('-')[0]);
+    if (minIcon) minIcon.style.display = 'inline-block';
+  }
+
+  function hideMinimizedIcon(id) {
+    const minIcon = document.getElementById('minimized-' + id.split('-')[0]);
+    if (minIcon) minIcon.style.display = 'none';
+  }
+
+  function restoreWindow(id, minId) {
+    const win = document.getElementById(id);
+    win.style.display = 'flex';
+    if (minId) document.getElementById(minId).style.display = 'none';
+    win.style.zIndex = getMaxZIndex() + 1;
+    centerWindow(win);
+  }
+
+  function toggleAboutWindow() {
+    const win = document.getElementById('about-window');
+    if (win.style.display === 'flex') {
+      minimizeWindow('about-window');
+    } else {
+      openWindow('about-window');
+    }
+  }
+
+  function showCliSection(section) {
+    const sections = document.querySelectorAll('#cli-content .cli-section');
+    sections.forEach(s => s.style.display = 'none');
+    document.getElementById(section).style.display = 'block';
+
+    const buttons = document.querySelectorAll('#cli-menu button');
+    buttons.forEach(b => b.classList.remove('active'));
+    const activeBtn = Array.from(buttons).find(b => b.textContent.replace(/\s/g,'').toLowerCase() === section);
+    if(activeBtn) activeBtn.classList.add('active');
+  }
+
+  function openOfficialSite() {
+    window.open('https://ethos.vision', '_blank');
+  }
+
+  // Drag & drop windows
+  let dragTarget = null;
+  let offsetX = 0, offsetY = 0;
+
+  function dragMouseDown(e, element) {
+    dragTarget = element;
+    offsetX = e.clientX - dragTarget.offsetLeft;
+    offsetY = e.clientY - dragTarget.offsetTop;
+    document.addEventListener('mousemove', dragMouseMove);
+    document.addEventListener('mouseup', dragMouseUp);
+  }
+
+  function dragMouseMove(e) {
+    if (!dragTarget) return;
+    let x = e.clientX - offsetX;
+    let y = e.clientY - offsetY;
+
+    const maxX = window.innerWidth - dragTarget.offsetWidth;
+    const maxY = window.innerHeight - dragTarget.offsetHeight;
+    if (x < 0) x = 0;
+    if (y < 25) y = 25; 
+    if (x > maxX) x = maxX;
+    if (y > maxY) y = maxY;
+
+    dragTarget.style.left = x + 'px';
+    dragTarget.style.top = y + 'px';
+  }
+
+  function dragMouseUp() {
+    dragTarget = null;
+    document.removeEventListener('mousemove', dragMouseMove);
+    document.removeEventListener('mouseup', dragMouseUp);
+  }
+
+  function getMaxZIndex() {
+    const elements = document.querySelectorAll('.window');
+    let max = 0;
+    elements.forEach(el => {
+      const z = parseInt(window.getComputedStyle(el).zIndex) || 0;
+      if (z > max) max = z;
+    });
+    return max;
+  }
+
+  function centerWindow(win) {
+    win.style.left = (window.innerWidth/2 - win.offsetWidth/2) + 'px';
+    win.style.top = (window.innerHeight/2 - win.offsetHeight/2) + 'px';
+  }
+
+  // Tetris game logic
+  const canvas = document.getElementById('tetris-canvas');
+  const context = canvas.getContext('2d');
+  context.scale(20, 20);
+
+  const arenaWidth = 12;
+  const arenaHeight = 20;
+  const arena = createMatrix(arenaWidth, arenaHeight);
+
+  function createMatrix(w, h) {
+    const matrix = [];
+    while (h--) {
+      matrix.push(new Array(w).fill(0));
+    }
+    return matrix;
+  }
+
+  const pieces = 'TJLOSZI';
+  function createPiece(type) {
+    switch(type) {
+      case 'T': return [
+        [0,0,0],
+        [1,1,1],
+        [0,1,0]
+      ];
+      case 'J': return [
+        [2,0,0],
+        [2,2,2],
+        [0,0,0]
+      ];
+      case 'L': return [
+        [0,0,3],
+        [3,3,3],
+        [0,0,0]
+      ];
+      case 'O': return [
+        [4,4],
+        [4,4]
+      ];
+      case 'S': return [
+        [0,5,5],
+        [5,5,0],
+        [0,0,0]
+      ];
+      case 'Z': return [
+        [6,6,0],
+        [0,6,6],
+        [0,0,0]
+      ];
+      case 'I': return [
+        [0,0,0,0],
+        [7,7,7,7],
+        [0,0,0,0],
+        [0,0,0,0]
+      ];
+    }
+  }
+
+  function drawMatrix(matrix, offset) {
+    matrix.forEach((row, y) => {
+      row.forEach((value, x) => {
+        if (value !== 0) {
+          context.fillStyle = colors[value];
+          context.fillRect(x + offset.x, y + offset.y, 1, 1);
+        }
+      });
+    });
+  }
+
+  function merge(arena, player) {
+    player.matrix.forEach((row, y) => {
+      row.forEach((value, x) => {
+        if(value !== 0) {
+          arena[y + player.pos.y][x + player.pos.x] = value;
+        }
+      });
+    });
+  }
+
+  function collide(arena, player) {
+    const m = player.matrix;
+    const o = player.pos;
+    for(let y = 0; y < m.length; ++y) {
+      for(let x = 0; x < m[y].length; ++x) {
+        if(m[y][x] !== 0 &&
+          (arena[y + o.y] &&
+           arena[y + o.y][x + o.x]) !== 0) {
+             return true;
+           }
+      }
+    }
+    return false;
+  }
+
+  function arenaSweep() {
+    let rowCount = 1;
+    outer: for(let y = arena.length -1; y >= 0; --y) {
+      for(let x = 0; x < arena[y].length; ++x) {
+        if(arena[y][x] === 0) {
+          continue outer;
+        }
+      }
+      const row = arena.splice(y,1)[0].fill(0);
+      arena.unshift(row);
+      ++y;
+    }
+  }
+
+  function playerDrop() {
+    player.pos.y++;
+    if(collide(arena, player)) {
+      player.pos.y--;
+      merge(arena, player);
+      resetPlayer();
+      arenaSweep();
+      updateScore();
+    }
+    dropCounter = 0;
+  }
+
+  function playerMove(dir) {
+    player.pos.x += dir;
+    if(collide(arena, player)) {
+      player.pos.x -= dir;
+    }
+  }
+
+  function playerRotate(dir) {
+    const pos = player.pos.x;
+    let offset = 1;
+    rotateMatrix(player.matrix, dir);
+    while(collide(arena, player)) {
+      player.pos.x += offset;
+      offset = -(offset + (offset > 0 ? 1 : -1));
+      if(offset > player.matrix[0].length) {
+        rotateMatrix(player.matrix, -dir);
+        player.pos.x = pos;
+        return;
+      }
+    }
+  }
+
+  function rotateMatrix(matrix, dir) {
+    for(let y = 0; y < matrix.length; ++y) {
+      for(let x = 0; x < y; ++x) {
+        [matrix[x][y], matrix[y][x]] = [matrix[y][x], matrix[x][y]];
+      }
+    }
+    if(dir > 0) {
+      matrix.forEach(row => row.reverse());
+    } else {
+      matrix.reverse();
+    }
+  }
+
+  function resetPlayer() {
+    const piecesArr = 'TJLOSZI';
+    player.matrix = createPiece(piecesArr[piecesIndex++ % piecesArr.length]);
+    player.pos.y = 0;
+    player.pos.x = Math.floor(arenaWidth / 2) - Math.floor(player.matrix[0].length / 2);
+    if(collide(arena, player)) {
+      arena.forEach(row => row.fill(0));
+      updateScore();
+    }
+  }
+
+  function updateScore() {
+    // Skor veya diğer işlemler eklenebilir.
+  }
+
+  function draw() {
+    context.fillStyle = '#000';
+    context.fillRect(0,0, canvas.width, canvas.height);
+
+    drawMatrix(arena, {x:0,y:0});
+    drawMatrix(player.matrix, player.pos);
+  }
+
+  let dropCounter = 0;
+  let dropInterval = 1000;
+  let lastTime = 0;
+  let piecesIndex = 0;
+
+  const colors = [
+    null,
+    '#FF0D72',
+    '#0DC2FF',
+    '#0DFF72',
+    '#F538FF',
+    '#FF8E0D',
+    '#FFE138',
+    '#3877FF',
+  ];
+
+  const player = {
+    pos: {x:0, y:0},
+    matrix: null,
+  };
+
+  resetPlayer();
+
+  function update(time=0) {
+    const deltaTime = time - lastTime;
+    lastTime = time;
+    dropCounter += deltaTime;
+    if(dropCounter > dropInterval) {
+      playerDrop();
+    }
+    draw();
+    requestAnimationFrame(update);
+  }
+
+  update();
+
+  window.addEventListener('keydown', event => {
+    if(document.getElementById('game-window').style.display === 'flex') {
+      if(event.key === 'ArrowLeft') {
+        playerMove(-1);
+      } else if(event.key === 'ArrowRight') {
+        playerMove(1);
+      } else if(event.key === 'ArrowDown') {
+        playerDrop();
+      } else if(event.key === 'q') {
+        playerRotate(-1);
+      } else if(event.key === 'w') {
+        playerRotate(1);
+      }
+    }
+  });
+</script>
+</body>
+</html>
